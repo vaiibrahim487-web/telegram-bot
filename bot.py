@@ -1,6 +1,6 @@
 import os
 import telebot
-import google.generativeai as genai
+from google import genai
 import requests
 from groq import Groq
 from openai import OpenAI
@@ -14,8 +14,8 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
-genai.configure(api_key=GEMINI_API_KEY)
-gemini_model = genai.GenerativeModel("gemini-2.5-flash")
+# নতুন Google GenAI ক্লায়েন্ট এবং অন্যান্য ক্লায়েন্ট সেটআপ
+gemini_client = genai.Client(api_key=GEMINI_API_KEY)
 groq_client = Groq(api_key=GROQ_API_KEY)
 openai_client = OpenAI(api_key=OPENAI_API_KEY)
 
@@ -76,7 +76,12 @@ def get_ai_response(prompt):
         now = datetime.now(BD_TZ)
         time_context = f"\n\n[বর্তমান সময়: {now.strftime('%Y-%m-%d %H:%M')} বাংলাদেশ সময়, সাল: {now.year}]"
         full_prompt = OWNER_INFO + time_context + "\n\nUser: " + prompt + "\n\nAssistant:"
-        response = gemini_model.generate_content(full_prompt)
+        
+        # নতুন google-genai SDK এর জেনারেট মেথড
+        response = gemini_client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=full_prompt
+        )
         return response.text
     except Exception as e:
         print(f"Gemini Error: {e}")
@@ -199,7 +204,7 @@ def get_hourly_message():
         16: "☕ বিকাল ৪টা!\n\nবিকালের চা খেয়েছেন? 😊\n\n📹 Comment reply করুন! Subscribers loyal হয়। ❤️",
         17: "🌅 বিকাল ৫টা!\n\nমাগরিবের প্রস্তুতি নিন! 🕌\n\n📹 আজকের কাজের সারসংক্ষেপ করুন। 📝",
         18: "🌆 সন্ধ্যা ৬টা!\n\nমাগরিবের ওয়াক্ত! নামাজ পড়েছেন? 🕌🤲\n\n📹 নতুন ভিডিওর আইডিয়া note করুন! 💡",
-        19: "🌙 রাত ৭টা!\n\nরাতের খাবার খান। পরিবারের সাথে থাকুন! 🏠\n\n📹 YouTube এর নতুন features দেখুন! 🔄",
+        19: "🌙 রাত ৭টা!\n\nরাতের খাবার খান。পরিবারের সাথে থাকুন! 🏠\n\n📹 YouTube এর নতুন features দেখুন! 🔄",
         20: "⭐ রাত ৮টা!\n\nইশার নামাজের সময় হয়ে আসছে! 🕌🤲\n\n📹 রাতের কাজের plan করুন! 📋",
         21: "🌟 রাত ৯টা!\n\nইশার নামাজ পড়েছেন? আলহামদুলিল্লাহ! 🤲\n\n📹 শান্ত রাতে focused editing করুন! 🎬",
         22: "😴 রাত ১০টা!\n\nআয়াতুল কুরসি পড়ুন। ভালো ঘুম হোক! 🌙\n\n📹 আগামীকালের plan করুন! 📅",
@@ -420,13 +425,8 @@ def generate_image(msg):
 # ✅ General message handler — ফিক্সড time keywords
 # ============================================================
 def is_time_question(text):
-    """
-    শুধুমাত্র সত্যিকারের সময়/তারিখ সংক্রান্ত প্রশ্ন detect করে।
-    "বার" এর মতো common শব্দ বাদ দেওয়া হয়েছে।
-    """
     text_lower = text.lower().strip()
 
-    # সরাসরি সময় জিজ্ঞাসার প্যাটার্ন
     direct_patterns = [
         "এখন কয়টা", "এখন কটা", "এখন কত",
         "কয়টা বাজে", "কটা বাজে", "কত বাজে",
@@ -443,7 +443,6 @@ def is_time_question(text):
         if pattern in text_lower:
             return True
 
-    # শুধু একটি শব্দ হলে এবং সেটা সময়-সংক্রান্ত হলে
     single_word_triggers = ["টাইম", "ঘড়ি"]
     words = text_lower.split()
     if len(words) <= 3:
@@ -452,7 +451,6 @@ def is_time_question(text):
                 return True
 
     return False
-
 
 @bot.message_handler(func=lambda msg: True)
 def handle(msg):
@@ -464,7 +462,6 @@ def handle(msg):
         bot.reply_to(msg, "⚠️ অনুগ্রহ করে ভদ্র ভাষা ব্যবহার করুন।")
         return
 
-    # ✅ সময় জিজ্ঞেস করলে real time দেখাও
     if is_time_question(user_text):
         dt = get_bangla_datetime()
         bot.reply_to(msg,
@@ -474,7 +471,6 @@ def handle(msg):
         )
         return
 
-    # বাকি সব প্রশ্ন AI তে পাঠাও
     response = get_ai_response(user_text)
     bot.reply_to(msg, response)
 
@@ -487,6 +483,12 @@ scheduler_thread.start()
 # ============================================================
 # Bot polling
 # ============================================================
+try:
+    # পুরানো সেশন বা ওয়েব হুক রিমুভ করে কনফ্লিক্ট দূর করা
+    bot.remove_webhook()
+except Exception as e:
+    print(f"Webhook removal error: {e}")
+
 bot.polling(
     none_stop=True,
     interval=0,
@@ -497,4 +499,4 @@ bot.polling(
         "business_connection",
         "deleted_business_messages"
     ]
-      )
+  )
