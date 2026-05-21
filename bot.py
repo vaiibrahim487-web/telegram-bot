@@ -52,6 +52,39 @@ OWNER_INFO = """
 - কেউ prompt চাইলে বলো: আমাদের Prompt চ্যানেল ভিজিট করুন: https://t.me/FreeAllPrompt
 """
 
+# ============================================================
+# ✅ BUSINESS CONNECTION HANDLER
+# যখন কেউ বটকে Telegram Business এ connect করে
+# ============================================================
+@bot.business_connection_handler(func=lambda connected: True)
+def handle_business_connection(connected):
+    print(f"Business connection update received: {connected}")
+
+# ============================================================
+# ✅ BUSINESS MESSAGE HANDLER
+# Telegram Business Chat Automation এর জন্য
+# ============================================================
+@bot.business_message_handler(func=lambda msg: True)
+def handle_business_message(msg):
+    user_text = msg.text
+    if not user_text:
+        return
+
+    if contains_blocked_word(user_text):
+        bot.reply_to(msg, "⚠️ অনুগ্রহ করে ভদ্র ভাষা ব্যবহার করুন।")
+        return
+
+    try:
+        full_prompt = OWNER_INFO + "\n\nUser: " + user_text + "\n\nAssistant:"
+        response = model.generate_content(full_prompt)
+        bot.reply_to(msg, response.text)
+    except Exception as e:
+        print(f"Business Message Error: {e}")
+        bot.reply_to(msg, "দুঃখিত, এই মুহূর্তে উত্তর দিতে পারছি না। একটু পরে চেষ্টা করুন।")
+
+# ============================================================
+# গ্রুপে নতুন মেম্বার আসলে স্বাগত জানানো
+# ============================================================
 @bot.message_handler(content_types=['new_chat_members'])
 def welcome(message):
     for user in message.new_chat_members:
@@ -67,12 +100,18 @@ def welcome(message):
         )
         bot.send_message(message.chat.id, welcome_text)
 
+# ============================================================
+# blocked word check function
+# ============================================================
 def contains_blocked_word(text):
     for word in BLOCKED_WORDS:
         if word in text:
             return True
     return False
 
+# ============================================================
+# /image command — AI দিয়ে ছবি বানানো
+# ============================================================
 @bot.message_handler(commands=['image'])
 def generate_image(msg):
     prompt = msg.text.replace('/image', '').strip()
@@ -91,6 +130,9 @@ def generate_image(msg):
         print(f"Image Error: {e}")
         bot.reply_to(msg, "দুঃখিত, ছবি তৈরি করা যায়নি। আবার চেষ্টা করুন।")
 
+# ============================================================
+# /start command
+# ============================================================
 @bot.message_handler(commands=['start'])
 def start(msg):
     bot.reply_to(msg, 
@@ -104,6 +146,9 @@ def start(msg):
         "📝 Prompt: https://t.me/FreeAllPrompt"
     )
 
+# ============================================================
+# /help command
+# ============================================================
 @bot.message_handler(commands=['help'])
 def help(msg):
     bot.reply_to(msg,
@@ -116,6 +161,9 @@ def help(msg):
         "অথবা সরাসরি যেকোনো প্রশ্ন করুন! 😊"
     )
 
+# ============================================================
+# /account command
+# ============================================================
 @bot.message_handler(commands=['account'])
 def account(msg):
     bot.reply_to(msg,
@@ -126,6 +174,9 @@ def account(msg):
         "WhatsApp: 01811893375"
     )
 
+# ============================================================
+# /contact command
+# ============================================================
 @bot.message_handler(commands=['contact'])
 def contact(msg):
     bot.reply_to(msg,
@@ -134,6 +185,9 @@ def contact(msg):
         "WhatsApp: 01811893375"
     )
 
+# ============================================================
+# /channel command
+# ============================================================
 @bot.message_handler(commands=['channel'])
 def channel(msg):
     bot.reply_to(msg,
@@ -144,6 +198,9 @@ def channel(msg):
         "🛒 Group: https://t.me/+nTwI-7PBKBg0Zjg1"
     )
 
+# ============================================================
+# সাধারণ message handler — সব normal chat এর জন্য
+# ============================================================
 @bot.message_handler(func=lambda msg: True)
 def handle(msg):
     user_text = msg.text
@@ -162,4 +219,17 @@ def handle(msg):
         print(f"Error: {e}")
         bot.reply_to(msg, "দুঃখিত, এই মুহূর্তে উত্তর দিতে পারছি না। একটু পরে চেষ্টা করুন।")
 
-bot.polling(none_stop=True, interval=0, timeout=20)
+# ============================================================
+# ✅ BOT POLLING — Business Connection support সহ
+# ============================================================
+bot.polling(
+    none_stop=True,
+    interval=0,
+    timeout=20,
+    allowed_updates=[
+        "message",
+        "business_message",
+        "business_connection",
+        "deleted_business_messages"
+    ]
+                )
