@@ -21,10 +21,10 @@ openai_client = OpenAI(api_key=OPENAI_API_KEY)
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
-BLOCKED_WORDS = ["গালি", "অশ্লীল", "বাজে", "ফালতু", "খারাপ"]
+# ✅ "বাজে" সরিয়ে দেওয়া হয়েছে
+BLOCKED_WORDS = ["গালি", "অশ্লীল", "ফালতু", "খারাপ"]
 
 BD_TZ = pytz.timezone("Asia/Dhaka")
-
 GROUP_CHAT_ID = None
 
 OWNER_INFO = """
@@ -74,17 +74,21 @@ OWNER_INFO = """
 # ============================================================
 def get_ai_response(prompt):
     try:
-        full_prompt = OWNER_INFO + "\n\nUser: " + prompt + "\n\nAssistant:"
+        now = datetime.now(BD_TZ)
+        time_context = f"\n\n[বর্তমান সময়: {now.strftime('%Y-%m-%d %H:%M')} বাংলাদেশ সময়, সাল: {now.year}]"
+        full_prompt = OWNER_INFO + time_context + "\n\nUser: " + prompt + "\n\nAssistant:"
         response = gemini_model.generate_content(full_prompt)
         return response.text
     except Exception as e:
         print(f"Gemini Error: {e}")
 
     try:
+        now = datetime.now(BD_TZ)
+        time_context = f"\n\n[বর্তমান সময়: {now.strftime('%Y-%m-%d %H:%M')} বাংলাদেশ সময়, সাল: {now.year}]"
         response = groq_client.chat.completions.create(
             model="llama3-70b-8192",
             messages=[
-                {"role": "system", "content": OWNER_INFO},
+                {"role": "system", "content": OWNER_INFO + time_context},
                 {"role": "user", "content": prompt}
             ]
         )
@@ -93,10 +97,12 @@ def get_ai_response(prompt):
         print(f"Groq Error: {e}")
 
     try:
+        now = datetime.now(BD_TZ)
+        time_context = f"\n\n[বর্তমান সময়: {now.strftime('%Y-%m-%d %H:%M')} বাংলাদেশ সময়, সাল: {now.year}]"
         response = openai_client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
-                {"role": "system", "content": OWNER_INFO},
+                {"role": "system", "content": OWNER_INFO + time_context},
                 {"role": "user", "content": prompt}
             ]
         )
@@ -164,7 +170,7 @@ def get_bangla_datetime():
     }
 
 # ============================================================
-# প্রতি ঘন্টার message — ইসলামিক + YouTube উৎসাহ
+# প্রতি ঘন্টার message
 # ============================================================
 def get_hourly_message():
     dt = get_bangla_datetime()
@@ -179,33 +185,33 @@ def get_hourly_message():
     header = f"🕐 {period} {hour}:00 | {day}, {date} {month} {year}\n➖➖➖➖➖➖➖➖➖➖\n\n"
 
     messages = {
-        4:  "🌙 ভোর ৪টা বাজে!\n\nফজরের ওয়াক্ত হয়ে আসছে। উঠুন, অজু করুন! 💧\nআল্লাহর দরবারে হাজির হন। 🤲\n\n📹 সফল YouTuber রা ভোরে উঠে কাজ শুরু করেন। আপনিও পারবেন! 💪",
-        5:  "🌅 ভোর ৫টা বাজে!\n\nফজর পড়েছেন? আলহামদুলিল্লাহ! 🤲\nদিনটা শুরু হোক আল্লাহর নামে।\n\n📹 আজকের ভিডিওর আইডিয়া ভাবুন। সকালের মাথা সবচেয়ে ফ্রেশ! 💡",
-        6:  "☀️ সকাল ৬টা বাজে!\n\nনতুন দিন, নতুন সুযোগ! আলহামদুলিল্লাহ 🌸\nসকালের দোয়া পড়েছেন?\n\n📹 আজ কি নতুন ভিডিও আপলোড করবেন? Consistency-ই সাফল্যের চাবিকাঠি! 🔑",
-        7:  "🍳 সকাল ৭টা বাজে!\n\nসকালের নাস্তা খেয়েছেন? সুস্থ শরীরে ভালো কাজ হয়! 😊\nবিসমিল্লাহ বলে খান।\n\n📹 YouTube Studio খুলুন, analytics চেক করুন। কাল কত views হয়েছে? 📊",
-        8:  "💼 সকাল ৮টা বাজে!\n\nবিসমিল্লাহ বলে দিনের কাজ শুরু করুন! 💪\nআল্লাহ বরকত দিন।\n\n📹 আজকের script লেখা শুরু করুন। একটা ভালো script মানেই একটা ভালো ভিডিও! ✍️",
-        9:  "☕ সকাল ৯টা বাজে!\n\nকাজের ফাঁকে আল্লাহকে স্মরণ করুন। সুবহানাল্লাহ! 🌸\n\n📹 Thumbnail নিয়ে কাজ করুন। একটা আকর্ষণীয় thumbnail CTR ৩ গুণ বাড়িয়ে দেয়! 🎨",
-        10: "🌞 সকাল ১০টা বাজে!\n\nআলহামদুলিল্লাহ, দিন সুন্দরভাবে চলছে! 😊\nআল্লাহর শুকরিয়া আদায় করুন।\n\n📹 SEO করেছেন? Title, description, tags ঠিকমতো দিলে ভিডিও অনেক বেশি মানুষের কাছে পৌঁছাবে! 🔍",
-        11: "⏰ সকাল ১১টা বাজে!\n\nযোহরের নামাজের প্রস্তুতি নিন। 🕌\nঅজু করুন, আল্লাহর কাছে যান।\n\n📹 Video editing শেষ হলে একবার পুরোটা দেখুন। Quality check করুন! ✅",
-        12: "🕛 দুপুর ১২টা বাজে!\n\nযোহরের ওয়াক্ত! কাজ থামান, নামাজ পড়ুন। 🕌\nআল্লাহ কবুল করুন। 🤲\n\n📹 নামাজের পর ভিডিও আপলোড দিন। দুপুরে আপলোড দিলে views ভালো আসে! 📈",
-        13: "🍽️ দুপুর ১টা বাজে!\n\nদুপুরের খাবার খেয়েছেন? বিসমিল্লাহ বলে খান! 😊\nসুস্থ থাকুন, ভালো থাকুন।\n\n📹 খাওয়ার ফাঁকে YouTube trends দেখুন। কোন topic এখন hot? 🔥",
-        14: "😴 দুপুর ২টা বাজে!\n\nকায়লুলা (দুপুরের বিশ্রাম) সুন্নত! একটু ঘুমান। 🌙\nতাজা থাকলে কাজ ভালো হয়।\n\n📹 ১৫-২০ মিনিট বিশ্রাম নিন। তারপর আবার energetic হয়ে কাজ করুন! ⚡",
-        15: "🌤️ বিকাল ৩টা বাজে!\n\nআসরের নামাজের সময় হয়ে আসছে! 🕌\nঅজু করুন, প্রস্তুত হন। 🤲\n\n📹 Community post করুন! Subscribers দের সাথে engage করুন। Algorithm ভালোবাসে! 💬",
-        16: "☕ বিকাল ৪টা বাজে!\n\nবিকালের চা খেয়েছেন? 😊\nপরিবারকে একটু সময় দিন।\n\n📹 Comment reply করুন! প্রতিটা comment reply করলে subscribers loyal হয়। ❤️",
-        17: "🌅 বিকাল ৫টা বাজে!\n\nসন্ধ্যা ঘনিয়ে আসছে। মাগরিবের প্রস্তুতি নিন! 🕌\nসন্ধ্যার দোয়া পড়ুন।\n\n📹 আজকের কাজের একটা সারসংক্ষেপ করুন। কতটুকু এগোলেন? 📝",
-        18: "🌆 সন্ধ্যা ৬টা বাজে!\n\nমাগরিবের ওয়াক্ত! নামাজ পড়েছেন? 🕌\nআল্লাহ কবুল করুন। 🤲\n\n📹 সন্ধ্যায় নতুন ভিডিওর আইডিয়া note করুন। রাতে কাজে লাগবে! 💡",
-        19: "🌙 রাত ৭টা বাজে!\n\nরাতের খাবারের প্রস্তুতি নিন। পরিবারের সাথে খান! 🏠\nবিসমিল্লাহ বলতে ভুলবেন না।\n\n📹 YouTube এর নতুন features দেখুন। Update থাকুন! 🔄",
-        20: "⭐ রাত ৮টা বাজে!\n\nইশার নামাজের সময় হয়ে আসছে! 🕌\nঅজু করুন, প্রস্তুত হন। 🤲\n\n📹 রাতে কাজ করার প্ল্যান করুন। Script, editing, thumbnail — কোনটা আগে? 📋",
-        21: "🌟 রাত ৯টা বাজে!\n\nইশার নামাজ পড়েছেন? আলহামদুলিল্লাহ! 🤲\nরাতের দোয়া পড়ুন।\n\n📹 এখন সবচেয়ে ভালো editing time! শান্ত রাতে focus করে কাজ করুন। 🎬",
-        22: "😴 রাত ১০টা বাজে!\n\nঘুমানোর আগে আয়াতুল কুরসি পড়ুন। 🌙\nআল্লাহ হেফাজত করুন।\n\n📹 আগামীকালের ভিডিওর plan করুন। Successful YouTubers রা আগে থেকেই plan করেন! 📅",
-        23: "🌙 রাত ১১টা বাজে!\n\nএখনো জেগে আছেন? ঘুমিয়ে পড়ুন! 😊\nসুস্থ শরীর = ভালো content.\n\n📹 দেরি করে জাগলে সকালে ফজর মিস হয়। Early to bed, early to rise! 🌅",
-        0:  "🌃 রাত ১২টা বাজে!\n\nগভীর রাত! বিশ্রাম নিন। 🤲\nআল্লাহ হেফাজত করুন।\n\n📹 রাত জেগে কাজ না করে সকালে উঠে করুন। Fresh mind = Better content! 💪",
-        1:  "🌌 রাত ১টা বাজে!\n\nতাহাজ্জুদের সময়! উঠতে পারলে নামাজ পড়ুন। 🕌\nআল্লাহর কাছে channel এর জন্য দোয়া করুন! 🤲\n\n📹 আল্লাহ চাইলে আপনার channel অনেক বড় হবে। বিশ্বাস রাখুন! ⭐",
-        2:  "🌌 রাত ২টা বাজে!\n\nএখনো জেগে? ঘুমান, ফজরের alarm দিন! ⏰\nসুস্থ থাকুন।\n\n📹 Overwork করবেন না। Burnout হলে content quality কমে যায়! 😊",
-        3:  "🌙 রাত ৩টা বাজে!\n\nফজরের আগের শেষ মুহূর্ত। তাহাজ্জুদ পড়ুন! 🤲\nআল্লাহর কাছে সব চান।\n\n📹 এই সময়ে আল্লাহর কাছে channel এর সাফল্যের দোয়া করুন! 🌙",
+        4:  "🌙 ভোর ৪টা!\n\nফজরের ওয়াক্ত হয়ে আসছে। উঠুন, অজু করুন! 💧\nআল্লাহর দরবারে হাজির হন। 🤲\n\n📹 সফল YouTuber রা ভোরে উঠে কাজ শুরু করেন। আপনিও পারবেন! 💪",
+        5:  "🌅 ভোর ৫টা!\n\nফজর পড়েছেন? আলহামদুলিল্লাহ! 🤲\n\n📹 আজকের ভিডিওর আইডিয়া ভাবুন। সকালের মাথা সবচেয়ে creative! 💡",
+        6:  "☀️ সকাল ৬টা!\n\nনতুন দিন, নতুন সুযোগ! আলহামদুলিল্লাহ 🌸\n\n📹 আজ কি নতুন ভিডিও আপলোড করবেন? Consistency-ই সাফল্যের চাবিকাঠি! 🔑",
+        7:  "🍳 সকাল ৭টা!\n\nসকালের নাস্তা খেয়েছেন? বিসমিল্লাহ বলে খান! 😊\n\n📹 YouTube Studio খুলুন, analytics চেক করুন! 📊",
+        8:  "💼 সকাল ৮টা!\n\nবিসমিল্লাহ বলে দিনের কাজ শুরু করুন! 💪\n\n📹 আজকের script লেখা শুরু করুন! ✍️",
+        9:  "☕ সকাল ৯টা!\n\nআল্লাহকে স্মরণ করুন। সুবহানাল্লাহ! 🌸\n\n📹 Thumbnail নিয়ে কাজ করুন। ভালো thumbnail = বেশি views! 🎨",
+        10: "🌞 সকাল ১০টা!\n\nআলহামদুলিল্লাহ! 😊\n\n📹 SEO করেছেন? Title, description, tags ঠিকমতো দিন! 🔍",
+        11: "⏰ সকাল ১১টা!\n\nযোহরের নামাজের প্রস্তুতি নিন। 🕌\n\n📹 Video editing শেষ হলে একবার পুরোটা দেখুন! ✅",
+        12: "🕛 দুপুর ১২টা!\n\nযোহরের ওয়াক্ত! নামাজ পড়ুন। 🕌🤲\n\n📹 নামাজের পর ভিডিও আপলোড দিন! 📈",
+        13: "🍽️ দুপুর ১টা!\n\nদুপুরের খাবার খেয়েছেন? বিসমিল্লাহ! 😊\n\n📹 YouTube trends দেখুন। কোন topic hot? 🔥",
+        14: "😴 দুপুর ২টা!\n\nকায়লুলা সুন্নত! একটু বিশ্রাম নিন। 🌙\n\n📹 ১৫-২০ মিনিট ঘুমান, তারপর energetic কাজ করুন! ⚡",
+        15: "🌤️ বিকাল ৩টা!\n\nআসরের নামাজের সময়! 🕌🤲\n\n📹 Community post করুন! Algorithm ভালোবাসে! 💬",
+        16: "☕ বিকাল ৪টা!\n\nবিকালের চা খেয়েছেন? 😊\n\n📹 Comment reply করুন! Subscribers loyal হয়। ❤️",
+        17: "🌅 বিকাল ৫টা!\n\nমাগরিবের প্রস্তুতি নিন! 🕌\n\n📹 আজকের কাজের সারসংক্ষেপ করুন। 📝",
+        18: "🌆 সন্ধ্যা ৬টা!\n\nমাগরিবের ওয়াক্ত! নামাজ পড়েছেন? 🕌🤲\n\n📹 নতুন ভিডিওর আইডিয়া note করুন! 💡",
+        19: "🌙 রাত ৭টা!\n\nরাতের খাবার খান। পরিবারের সাথে থাকুন! 🏠\n\n📹 YouTube এর নতুন features দেখুন! 🔄",
+        20: "⭐ রাত ৮টা!\n\nইশার নামাজের সময় হয়ে আসছে! 🕌🤲\n\n📹 রাতের কাজের plan করুন! 📋",
+        21: "🌟 রাত ৯টা!\n\nইশার নামাজ পড়েছেন? আলহামদুলিল্লাহ! 🤲\n\n📹 শান্ত রাতে focused editing করুন! 🎬",
+        22: "😴 রাত ১০টা!\n\nআয়াতুল কুরসি পড়ুন। ভালো ঘুম হোক! 🌙\n\n📹 আগামীকালের plan করুন! 📅",
+        23: "🌙 রাত ১১টা!\n\nঘুমিয়ে পড়ুন! সুস্থ শরীর = ভালো content! 😊\n\n📹 Early to bed, early to rise! 🌅",
+        0:  "🌃 রাত ১২টা!\n\nবিশ্রাম নিন। আল্লাহ হেফাজত করুন! 🤲\n\n📹 Fresh mind = Better content! 💪",
+        1:  "🌌 রাত ১টা!\n\nতাহাজ্জুদের সময়! নামাজ পড়ুন। 🕌\n\n📹 আল্লাহর কাছে channel এর জন্য দোয়া করুন! 🤲",
+        2:  "🌌 রাত ২টা!\n\nঘুমান, ফজরের alarm দিন! ⏰\n\n📹 Overwork করবেন না। 😊",
+        3:  "🌙 রাত ৩টা!\n\nতাহাজ্জুদ পড়ুন! 🤲\n\n📹 Channel এর সাফল্যের দোয়া করুন! 🌙",
     }
 
-    msg = messages.get(h, f"আল্লাহর রহমতে {period} {hour}টা বাজে। আল্লাহকে স্মরণ করুন! 🌸\n\n📹 কাজ চালিয়ে যান, সাফল্য আসবেই ইনশাআল্লাহ! 💪")
+    msg = messages.get(h, f"আল্লাহর রহমতে {period} {hour}টা। আল্লাহকে স্মরণ করুন! 🌸\n\n📹 কাজ চালিয়ে যান, সাফল্য আসবেই ইনশাআল্লাহ! 💪")
     return header + msg
 
 # ============================================================
@@ -216,46 +222,11 @@ def get_prayer_reminder(prayer_name):
     header = f"📅 {dt['day']}, {dt['date']} {dt['month']} {dt['year']}\n➖➖➖➖➖➖➖➖➖➖\n\n"
 
     reminders = {
-        "ফজর": (
-            "🌙 মাত্র ১০ মিনিট পরে ফজরের আজান!\n\n"
-            "🛏️ ঘুম থেকে উঠুন\n"
-            "💧 অজু করুন\n"
-            "🕌 জায়নামাজে দাঁড়ান\n\n"
-            "ফজরের নামাজ জান্নাতের চাবিকাঠি! 🤲\n\n"
-            "📹 ফজরের পর একটু সময় নিন। আজকের ভিডিওর আইডিয়া ভাবুন। সকালের মাথা সবচেয়ে creative! 💡"
-        ),
-        "যোহর": (
-            "☀️ মাত্র ১০ মিনিট পরে যোহরের আজান!\n\n"
-            "⏸️ কাজ একটু থামান\n"
-            "💧 অজু করুন\n"
-            "🕌 নামাজ পড়ুন\n\n"
-            "যোহরের নামাজ মিস করবেন না! 🤲\n\n"
-            "📹 নামাজের পর fresh হয়ে editing শুরু করুন। Break নিলে কাজ আরো ভালো হয়! ✂️"
-        ),
-        "আসর": (
-            "🌤️ মাত্র ১০ মিনিট পরে আসরের আজান!\n\n"
-            "🕌 প্রস্তুত হন\n"
-            "💧 অজু করুন\n"
-            "🙏 আসরের নামাজ পড়ুন\n\n"
-            "আসরের নামাজ অত্যন্ত গুরুত্বপূর্ণ! 🤲\n\n"
-            "📹 আসরের পর community post করুন! Subscribers দের সাথে engage করুন। 💬"
-        ),
-        "মাগরিব": (
-            "🌅 মাত্র ১০ মিনিট পরে মাগরিবের আজান!\n\n"
-            "📵 সব কাজ রাখুন\n"
-            "💧 অজু করুন\n"
-            "🕌 মাগরিবের নামাজ পড়ুন\n\n"
-            "সূর্যাস্তের পর দেরি করবেন না! 🤲\n\n"
-            "📹 মাগরিবের পর আজকের কাজের হিসাব করুন। কতটুকু এগোলেন? 📊"
-        ),
-        "ইশা": (
-            "🌙 মাত্র ১০ মিনিট পরে ইশার আজান!\n\n"
-            "🌟 রাতের শেষ ফরজ নামাজ\n"
-            "💧 অজু করুন\n"
-            "🕌 ইশার নামাজ পড়ুন\n\n"
-            "ইশার নামাজ = অর্ধেক রাত ইবাদতের সওয়াব! 🤲\n\n"
-            "📹 ইশার পর শান্ত মনে editing করুন। রাতের কাজ অনেক focused হয়! 🎬"
-        )
+        "ফজর": "🌙 মাত্র ১০ মিনিট পরে ফজরের আজান!\n\n🛏️ উঠুন\n💧 অজু করুন\n🕌 নামাজ পড়ুন\n\nফজরের নামাজ জান্নাতের চাবিকাঠি! 🤲\n\n📹 ফজরের পর আজকের ভিডিওর আইডিয়া ভাবুন! 💡",
+        "যোহর": "☀️ মাত্র ১০ মিনিট পরে যোহরের আজান!\n\n⏸️ কাজ থামান\n💧 অজু করুন\n🕌 নামাজ পড়ুন\n\nযোহর মিস করবেন না! 🤲\n\n📹 নামাজের পর fresh হয়ে editing করুন! ✂️",
+        "আসর": "🌤️ মাত্র ১০ মিনিট পরে আসরের আজান!\n\n🕌 প্রস্তুত হন\n💧 অজু করুন\n🙏 নামাজ পড়ুন\n\nআসর অত্যন্ত গুরুত্বপূর্ণ! 🤲\n\n📹 আসরের পর community post করুন! 💬",
+        "মাগরিব": "🌅 মাত্র ১০ মিনিট পরে মাগরিবের আজান!\n\n📵 কাজ রাখুন\n💧 অজু করুন\n🕌 নামাজ পড়ুন\n\nদেরি করবেন না! 🤲\n\n📹 মাগরিবের পর আজকের হিসাব করুন! 📊",
+        "ইশা": "🌙 মাত্র ১০ মিনিট পরে ইশার আজান!\n\n🌟 রাতের শেষ ফরজ\n💧 অজু করুন\n🕌 নামাজ পড়ুন\n\nইশা = অর্ধেক রাত ইবাদতের সওয়াব! 🤲\n\n📹 ইশার পর focused editing করুন! 🎬"
     }
 
     return header + reminders.get(prayer_name, "")
@@ -274,17 +245,14 @@ def scheduler():
             current_hour = now.hour
             current_minute = now.minute
 
-            # প্রতি ঘন্টায় message
             if current_minute == 0 and current_hour != last_hour_sent:
                 try:
                     msg = get_hourly_message()
                     bot.send_message(GROUP_CHAT_ID, msg)
                     last_hour_sent = current_hour
-                    print(f"Hourly message sent: {current_hour}:00")
                 except Exception as e:
-                    print(f"Hourly message error: {e}")
+                    print(f"Hourly error: {e}")
 
-            # নামাজের reminder — ১০ মিনিট আগে
             prayer_times = get_prayer_times()
             if prayer_times:
                 for prayer, prayer_time in prayer_times.items():
@@ -304,14 +272,13 @@ def scheduler():
                             msg = get_prayer_reminder(prayer)
                             bot.send_message(GROUP_CHAT_ID, msg)
                             last_prayer_reminded = reminder_key
-                            print(f"Prayer reminder sent: {prayer}")
                         except Exception as e:
-                            print(f"Prayer reminder error: {e}")
+                            print(f"Prayer error: {e}")
 
         time.sleep(30)
 
 # ============================================================
-# /setgroup command
+# /setgroup
 # ============================================================
 @bot.message_handler(commands=['setgroup'])
 def set_group(msg):
@@ -323,25 +290,22 @@ def set_group(msg):
             f"✅ গ্রুপ সেট হয়ে গেছে! আলহামদুলিল্লাহ!\n\n"
             f"📅 {dt['day']}, {dt['date']} {dt['month']} {dt['year']}\n"
             f"🕐 {dt['period']} {dt['hour']}:{str(dt['minute']).zfill(2)}\n\n"
-            f"এখন থেকে এই গ্রুপে:\n"
+            f"এখন থেকে:\n"
             f"🕌 প্রতি নামাজের ১০ মিনিট আগে reminder\n"
-            f"⏰ প্রতি ঘন্টায় ইসলামিক + YouTube message\n"
-            f"📹 YouTube উৎসাহ ও টিপস\n\n"
-            f"আল্লাহ আপনাদের সবার channel কে সফল করুন! 🤲"
+            f"⏰ প্রতি ঘন্টায় message\n"
+            f"📹 YouTube tips ও উৎসাহ\n\n"
+            f"আল্লাহ সবার channel সফল করুন! 🤲"
         )
     else:
         bot.reply_to(msg, "⚠️ এই command শুধু গ্রুপে কাজ করবে!")
 
 # ============================================================
-# Business Connection Handler
+# Business handlers
 # ============================================================
 @bot.business_connection_handler(func=lambda connected: True)
 def handle_business_connection(connected):
     print(f"Business connection: {connected}")
 
-# ============================================================
-# Business Message Handler
-# ============================================================
 @bot.business_message_handler(func=lambda msg: True)
 def handle_business_message(msg):
     user_text = msg.text
@@ -354,7 +318,7 @@ def handle_business_message(msg):
     bot.reply_to(msg, response)
 
 # ============================================================
-# Welcome new members
+# Welcome
 # ============================================================
 @bot.message_handler(content_types=['new_chat_members'])
 def welcome(message):
@@ -363,12 +327,10 @@ def welcome(message):
         bot.send_message(message.chat.id,
             f"আসসালামু আলাইকুম! 👋\n"
             f"স্বাগতম {name} ভাই/আপু! 🎉\n\n"
-            f"এই গ্রুপে আপনাকে স্বাগতম!\n"
-            f"আমরা সবাই YouTuber, ইসলামিক মূল্যবোধ নিয়ে চলি। 🌸\n\n"
-            f"📢 চ্যানেল: https://t.me/FreeHelpNow786\n"
-            f"📝 Prompt: https://t.me/FreeAllPrompt\n"
-            f"🛒 Account: @ibrahimbinshiraj786\n\n"
-            f"আল্লাহ আপনার channel কে সফল করুন! 🤲"
+            f"আমরা সবাই YouTuber, ইসলামিক মূল্যবোধ নিয়ে চলি! 🌸\n\n"
+            f"📢 https://t.me/FreeHelpNow786\n"
+            f"🛒 @ibrahimbinshiraj786\n\n"
+            f"আল্লাহ আপনার channel সফল করুন! 🤲"
         )
 
 # ============================================================
@@ -393,8 +355,7 @@ def start(msg):
         "🕌 /setgroup — নামাজ reminder চালু\n"
         "📹 YouTube tips ও পরামর্শ\n"
         "🛒 Premium Account তথ্য\n\n"
-        "আল্লাহ আপনার channel কে সফল করুন! 🤲\n"
-        "📢 https://t.me/FreeHelpNow786"
+        "আল্লাহ আপনার channel সফল করুন! 🤲"
     )
 
 @bot.message_handler(commands=['help'])
@@ -407,7 +368,7 @@ def help_cmd(msg):
         "/account - একাউন্ট কিনুন\n"
         "/contact - যোগাযোগ\n"
         "/channel - আমাদের চ্যানেল\n\n"
-        "অথবা সরাসরি যেকোনো প্রশ্ন করুন! 😊"
+        "সরাসরি যেকোনো প্রশ্ন করুন! 😊"
     )
 
 @bot.message_handler(commands=['account'])
@@ -457,21 +418,34 @@ def generate_image(msg):
         bot.reply_to(msg, "দুঃখিত, ছবি তৈরি হয়নি।")
 
 # ============================================================
-# General message handler
+# ✅ General message handler — সময় সঠিক
 # ============================================================
 @bot.message_handler(func=lambda msg: True)
 def handle(msg):
     user_text = msg.text
     if not user_text:
         return
+
     if contains_blocked_word(user_text):
         bot.reply_to(msg, "⚠️ অনুগ্রহ করে ভদ্র ভাষা ব্যবহার করুন।")
         return
+
+    # ✅ সময় জিজ্ঞেস করলে real time দেখাও
+    time_keywords = ["টাইম", "সময়", "কয়টা", "কটা", "ঘড়ি", "বাজে", "তারিখ", "আজকে", "আজ", "কত তারিখ", "বার", "সাল", "দিন"]
+    if any(word in user_text for word in time_keywords):
+        dt = get_bangla_datetime()
+        bot.reply_to(msg,
+            f"🕐 এখন {dt['period']} {dt['hour']}:{str(dt['minute']).zfill(2)}\n"
+            f"📅 {dt['day']}, {dt['date']} {dt['month']} {dt['year']}\n"
+            f"🌍 বাংলাদেশ সময় (ঢাকা)"
+        )
+        return
+
     response = get_ai_response(user_text)
     bot.reply_to(msg, response)
 
 # ============================================================
-# Scheduler thread start
+# Scheduler thread
 # ============================================================
 scheduler_thread = threading.Thread(target=scheduler, daemon=True)
 scheduler_thread.start()
@@ -489,4 +463,4 @@ bot.polling(
         "business_connection",
         "deleted_business_messages"
     ]
-  )
+      )
