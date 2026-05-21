@@ -21,7 +21,6 @@ openai_client = OpenAI(api_key=OPENAI_API_KEY)
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# ✅ "বাজে" সরিয়ে দেওয়া হয়েছে
 BLOCKED_WORDS = ["গালি", "অশ্লীল", "ফালতু", "খারাপ"]
 
 BD_TZ = pytz.timezone("Asia/Dhaka")
@@ -418,8 +417,43 @@ def generate_image(msg):
         bot.reply_to(msg, "দুঃখিত, ছবি তৈরি হয়নি।")
 
 # ============================================================
-# ✅ General message handler — সময় সঠিক
+# ✅ General message handler — ফিক্সড time keywords
 # ============================================================
+def is_time_question(text):
+    """
+    শুধুমাত্র সত্যিকারের সময়/তারিখ সংক্রান্ত প্রশ্ন detect করে।
+    "বার" এর মতো common শব্দ বাদ দেওয়া হয়েছে।
+    """
+    text_lower = text.lower().strip()
+
+    # সরাসরি সময় জিজ্ঞাসার প্যাটার্ন
+    direct_patterns = [
+        "এখন কয়টা", "এখন কটা", "এখন কত",
+        "কয়টা বাজে", "কটা বাজে", "কত বাজে",
+        "এখন সময়", "বর্তমান সময়", "সময় কত",
+        "কত তারিখ", "আজ তারিখ", "আজকে তারিখ",
+        "আজ কি বার", "আজকে কি বার", "কি বার আজ",
+        "আজ কত", "আজকে কত", "কত সাল",
+        "এখন কি সময়", "টাইম কত", "টাইম বলো",
+        "সময় বলো", "তারিখ বলো", "ঘড়িতে কত",
+        "what time", "current time", "what date",
+    ]
+
+    for pattern in direct_patterns:
+        if pattern in text_lower:
+            return True
+
+    # শুধু একটি শব্দ হলে এবং সেটা সময়-সংক্রান্ত হলে
+    single_word_triggers = ["টাইম", "ঘড়ি"]
+    words = text_lower.split()
+    if len(words) <= 3:
+        for word in single_word_triggers:
+            if word in text_lower:
+                return True
+
+    return False
+
+
 @bot.message_handler(func=lambda msg: True)
 def handle(msg):
     user_text = msg.text
@@ -431,8 +465,7 @@ def handle(msg):
         return
 
     # ✅ সময় জিজ্ঞেস করলে real time দেখাও
-    time_keywords = ["টাইম", "সময়", "কয়টা", "কটা", "ঘড়ি", "বাজে", "তারিখ", "আজকে", "আজ", "কত তারিখ", "বার", "সাল", "দিন"]
-    if any(word in user_text for word in time_keywords):
+    if is_time_question(user_text):
         dt = get_bangla_datetime()
         bot.reply_to(msg,
             f"🕐 এখন {dt['period']} {dt['hour']}:{str(dt['minute']).zfill(2)}\n"
@@ -441,6 +474,7 @@ def handle(msg):
         )
         return
 
+    # বাকি সব প্রশ্ন AI তে পাঠাও
     response = get_ai_response(user_text)
     bot.reply_to(msg, response)
 
@@ -463,4 +497,4 @@ bot.polling(
         "business_connection",
         "deleted_business_messages"
     ]
-  )
+      )
