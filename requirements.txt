@@ -1,7 +1,6 @@
 pyTelegramBotAPI
 google-genai
-anthropic
+requests
 groq
 openai
 pytz
-requests
