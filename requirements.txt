@@ -1,4 +1,7 @@
 pyTelegramBotAPI
 google-generativeai
+anthropic
+groq
+openai
 pytz
 requests
