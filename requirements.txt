@@ -1,7 +1,6 @@
-pyTelegramBotAPI
+pyTelegramBotAPI>=4.14.0
 google-generativeai
-anthropic
 groq
 openai
-pytz
 requests
+pytz
