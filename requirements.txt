@@ -1,4 +1,4 @@
-py TelegramBotAPI
+pyTelegramBotAPI
 google-generativeai
 pytz
 requests
